@@ -21,9 +21,9 @@ O POKESTREAMS só **organiza isso**: abre as lives em grade, mantém os chats co
 ### Windows
 
 1. Instale o **Node.js LTS** em <https://nodejs.org> (pode deixar as opções padrão).
-2. Baixe o arquivo `pokestreams-vX.X.X.zip` na aba **[Releases](../../releases)** deste repositório.
+2. Baixe o arquivo `pokestreams-v2.0.0.zip` na aba **[Releases](../../releases)** deste repositório.
 3. *(Recomendado)* Confira o hash do arquivo, veja [Como verificar](#como-verificar-o-que-você-baixou).
-4. Extraia numa pasta só dele (por exemplo `Documentos\POKESTREAMS`). Se tinha uma versão antiga, **apague a pasta velha antes**.
+4. Extraia numa pasta só dele (por exemplo `Documentos\pokestreams-v2.0.0`). Se tinha uma versão antiga, **apague a pasta velha antes**.
 5. Dê dois cliques em **`iniciar.bat`**. Na primeira vez ele instala o necessário (alguns minutos) e abre sozinho. Nas próximas, abre direto.
 
 ### macOS / Linux
@@ -79,13 +79,13 @@ Cada versão publicada traz o **SHA-256** do `.zip` na descrição da Release. C
 
 ```powershell
 # Windows (PowerShell)
-Get-FileHash .\pokestreams-vX.X.X.zip -Algorithm SHA256
+Get-FileHash .\pokestreams-v2.0.0.zip -Algorithm SHA256
 ```
 ```bash
 # Linux
-sha256sum pokestreams-vX.X.X.zip
+sha256sum pokestreams-v2.0.0.zip
 # macOS
-shasum -a 256 pokestreams-vX.X.X.zip
+shasum -a 256 pokestreams-v2.0.0.zip
 ```
 
 Se o hash for **diferente**, não abra o arquivo.
@@ -134,4 +134,4 @@ Cada quadro tem dois `<webview>` na mesma sessão (`persist:twitch`): o player e
 
 Inspirado no [PokeGrid](https://github.com/soufoka/PokeGrid-source). Licença **MIT**, veja [LICENSE](LICENSE).
 
-Dúvidas e sugestões: Discord da guild **FREE TO WIN** · ([LINK DO DISCORD](https://discord.gg/ryhuqdzW8))
+Dúvidas e sugestões: Discord da guild **FREE TO WIN** · ([Entrar no Discord](https://discord.gg/ryhuqdzW8))

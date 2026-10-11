@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<title>POKESTREAMS</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --line: #262c36; --line2: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --purple: #9146ff; --purple2: #772ce8;
+    --green: #3fb950; --red: #f85149; --yellow: #d29922; --chip: #1f2630;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.35 system-ui, "Segoe UI", sans-serif; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
+
+  /* ---------- Barra do topo (igual PokeGrid) ---------- */
+  header { height: 46px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid var(--line); background: var(--bg); }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: 1.5px; font-size: 15px; margin-right: 6px; }
+     .logo svg { width: 20px; height: 20px; }
+  .ver { color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0; }
+  button, select { font: 600 12.5px system-ui, "Segoe UI", sans-serif; color: var(--text); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 0; border-radius: 6px; padding: 6px 10px; cursor: pointer; white-space: nowrap; }
+  .btn:hover { background: var(--chip); }
+  .btn svg { width: 15px; height: 15px; }
+  .btn.primary { background: var(--purple); }
+  .btn.primary:hover { background: var(--purple2); }
+  .spacer { flex: 1; }
+  .sep { width: 1px; height: 22px; background: var(--line2); margin: 0 4px; }
+  .bonus { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(145,70,255,.14); border: 1px solid rgba(145,70,255,.45); font-weight: 700; }
+  .bonus b { color: #ffd37a; }
+  .user { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .user .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .seg { display: inline-flex; background: var(--panel); border: 1px solid var(--line2); border-radius: 7px; padding: 2px; }
+  .seg button { background: transparent; border: 0; padding: 4px 7px; border-radius: 5px; cursor: pointer; color: var(--muted); display: inline-flex; }
+  .seg button.on { background: var(--chip); color: var(--text); }
+  .seg svg { width: 22px; height: 15px; }
+
+  /* ---------- Grade ---------- */
+  #grid { flex: 1; min-height: 0; display: grid; gap: 1px; background: var(--bg); position: relative; }
+  .tile { background: var(--bg); box-shadow: 0 0 0 1px var(--line); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .tile.floating { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 36%; height: 46%; min-width: 420px; min-height: 300px; z-index: 4;
+    box-shadow: 0 0 0 2px var(--purple), 0 18px 48px rgba(0,0,0,.65); border-radius: 6px; overflow: hidden; }
+  .tile.expanded { position: absolute; inset: 0; z-index: 5; transform: none; width: auto; height: auto; border-radius: 0; }
+  .bar { height: 30px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 10px; border-bottom: 1px solid var(--line); }
+  .bar .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .bar .dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .bar .dot.offline { background: var(--red); }
+  .bar .dot.loading { background: var(--yellow); }
+  .plat { font: 800 10px system-ui; letter-spacing: .5px; padding: 2px 6px; border-radius: 4px; cursor: pointer; flex: none; }
+  .plat.twitch { background: #9146ff; color: #fff; }
+  .plat.kick { background: #53fc18; color: #0b0e0f; }
+  .acc { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line2); border-radius: 6px; padding: 5px 10px; background: transparent; cursor: pointer; color: var(--text); }
+  .acc:hover { background: var(--chip); }
+  .acc .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .acc.on .dot { background: var(--green); }
+  .acc.twitch:not(.on) { background: #9146ff; border-color: #9146ff; }
+  .acc.kick:not(.on) { background: #53fc18; border-color: #53fc18; color: #0b0e0f; }
+  .acc.kick:not(.on) .dot, .acc.twitch:not(.on) .dot { display: none; }
+  .platpick { display: inline-flex; gap: 6px; }
+  .platpick button { border: 1px solid var(--line2); background: transparent; color: var(--muted); border-radius: 6px; padding: 6px 14px; font: 700 12.5px system-ui; cursor: pointer; }
+  .platpick button.on.twitch { background: #9146ff; border-color: #9146ff; color: #fff; }
+  .platpick button.on.kick { background: #53fc18; border-color: #53fc18; color: #0b0e0f; }
+  .name { font-weight: 700; cursor: pointer; border-radius: 4px; padding: 1px 4px; }
+  .name:hover { background: var(--chip); }
+  .name input { background: var(--panel); color: var(--text); border: 1px solid var(--purple); border-radius: 4px; font: 700 13px system-ui; padding: 1px 4px; width: 160px; }
+  .badge { font-size: 11.5px; padding: 2px 8px; border-radius: 6px; font-weight: 600; border: 1px solid; }
+  .badge.live { color: var(--green); border-color: rgba(63,185,80,.4); background: rgba(63,185,80,.1); }
+  .badge.offline { color: var(--red); border-color: rgba(248,81,73,.4); background: rgba(248,81,73,.1); }
+  .badge.loading { color: var(--yellow); border-color: rgba(210,153,34,.4); background: rgba(210,153,34,.1); }
+  .tools { margin-left: auto; display: flex; gap: 2px; }
+  .tools button { background: transparent; border: 0; color: var(--muted); padding: 4px 5px; border-radius: 4px; cursor: pointer; display: inline-flex; }
+  .tools button:hover { background: var(--chip); color: var(--text); }
+  .tools button.off { opacity: .45; }
+  .tools svg { width: 15px; height: 15px; }
+  .body { flex: 1; min-height: 0; display: flex; position: relative; background: #000; }
+  .body webview { display: flex; height: 100%; border: 0; }
+  /* Player nunca menor que 400px de largura: a Twitch não conta player menor que 400×300. */
+  .body webview.player { flex: 1 1 auto; min-width: 400px; }
+  .body webview.chat { flex: 0 1 auto; min-width: 180px; border-left: 1px solid var(--line); background: #18181b; }
+  /* Chat oculto: continua carregado e CONECTADO (é por ele que o jogo te acha), só não aparece. */
+  .body.nochat webview.chat { position: absolute; right: 0; top: 0; width: 2px !important; height: 2px; opacity: 0; pointer-events: none; border: 0; }
+
+  .empty { flex: 1; display: grid; place-items: center; background: var(--panel); }
+  .empty form { display: grid; gap: 10px; justify-items: center; color: var(--muted); }
+  .empty input { background: var(--bg); color: var(--text); border: 1px solid var(--line2); border-radius: 6px; padding: 8px 10px; width: 240px; font: 14px system-ui; }
+  .empty input:focus { outline: 2px solid var(--purple); border-color: transparent; }
+
+  /* ---------- Opções ---------- */
+  #opts { position: absolute; top: 50px; right: 12px; z-index: 20; width: 320px; background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; padding: 14px; display: none; box-shadow: 0 12px 32px rgba(0,0,0,.5); }
+  #opts.open { display: grid; gap: 12px; }
+  #opts h4 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); }
+  #opts label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+  #opts label.check { display: flex; gap: 8px; align-items: center; color: var(--text); font-size: 13px; }
+  #opts select, #opts input[type=number] { background: var(--bg); border: 1px solid var(--line2); border-radius: 6px; padding: 6px 8px; color: var(--text); font: 13px system-ui; }
+  #opts .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #opts p { margin: 0; color: var(--muted); font-size: 11.5px; }
+  .quadros { display: grid; gap: 6px; }
+</style>
+</head>
+<body>
+<header>
+ <div class="logo">
+    <svg viewBox="0 0 24 24" fill="#9146ff"><path d="M4.3 2 3 5.5V20h5v2.6h2.8L13.4 20h4L23 14.4V2H4.3Zm16.8 11.5-3.2 3.2h-5l-2.8 2.8v-2.8H6V3.9h15.1v9.6Z"/><path d="M15.5 7.1h1.9v5.6h-1.9zM10.4 7.1h1.9v5.6h-1.9z"/></svg>
+    POKESTREAMS <span class="ver">v2.0.0</span>
+  </div>
+  <button class="acc twitch" id="accTwitch" title="Conta da Twitch"><span class="dot"></span><span>Entrar na Twitch</span></button>
+  <button class="acc kick" id="accKick" title="Conta da Kick"><span class="dot"></span><span>Entrar na Kick</span></button> 
+  <button class="btn" id="btnReloadAll"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg>Atualizar tudo</button>
+  <span class="spacer"></span>
+  <span class="bonus" title="Lives ao vivo agora. 1 live = +15%, cada live a mais = +2,5% (até 5). Só valem os canais oficiais do jogo.">Bônus <b id="bonusPct">+0%</b><span style="color:var(--muted);font-weight:600">· <span id="bonusN">0</span>/5 ao vivo</span></span>
+  <span class="sep"></span>
+  <div class="seg" id="layoutSeg" title="Disposição dos quadros (com 5 quadros ativos; o quadro 1 é o do meio)">
+    <button data-layout="centro" title="4 em grade + 1 flutuando no meio"><svg viewBox="0 0 22 15" fill="currentColor"><rect x="0" y="0" width="10.5" height="7" rx="1" opacity=".55"/><rect x="11.5" y="0" width="10.5" height="7" rx="1" opacity=".55"/><rect x="0" y="8" width="10.5" height="7" rx="1" opacity=".55"/><rect x="11.5" y="8" width="10.5" height="7" rx="1" opacity=".55"/><rect x="6.5" y="3.5" width="9" height="8" rx="1"/></svg></button>
+    <button data-layout="3-2" title="3 em cima, 2 embaixo"><svg viewBox="0 0 22 15" fill="currentColor"><rect x="0" y="0" width="6.6" height="7" rx="1"/><rect x="7.7" y="0" width="6.6" height="7" rx="1"/><rect x="15.4" y="0" width="6.6" height="7" rx="1"/><rect x="0" y="8" width="10.5" height="7" rx="1"/><rect x="11.5" y="8" width="10.5" height="7" rx="1"/></svg></button>
+    <button data-layout="2-3" title="2 em cima, 3 embaixo"><svg viewBox="0 0 22 15" fill="currentColor"><rect x="0" y="0" width="10.5" height="7" rx="1"/><rect x="11.5" y="0" width="10.5" height="7" rx="1"/><rect x="0" y="8" width="6.6" height="7" rx="1"/><rect x="7.7" y="8" width="6.6" height="7" rx="1"/><rect x="15.4" y="8" width="6.6" height="7" rx="1"/></svg></button>
+
+  </div>
+  <button class="btn" id="btnOpts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Opções</button>
+  <button class="btn" id="btnFull" title="Tela cheia (F11)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</header>
+
+<div id="opts">
+  <h4>Quadros</h4>
+  <div class="quadros" id="quadros"></div>
+  <h4>Vídeo</h4>
+  <div class="row">
+    <label>Qualidade
+      <select id="optQuality">
+        <option value="160p30">160p (leve)</option>
+        <option value="360p30">360p</option>
+        <option value="480p30">480p</option>
+        <option value="720p30">720p</option>
+        <option value="720p60">720p60</option>
+        <option value="chunked">Fonte</option>
+      </select>
+    </label>
+    <label>Volume inicial
+      <select id="optVolume">
+        <option value="0.02">2%</option><option value="0.05">5%</option><option value="0.1">10%</option>
+        <option value="0.2">20%</option><option value="0.5">50%</option><option value="1">100%</option>
+      </select>
+    </label>
+  </div>
+  <div class="row">
+    <label>Largura do chat (px)<input type="number" id="optChatW" min="200" max="500" step="10"></label>
+    <label>Recarregar a cada (min)<input type="number" id="optReload" min="0" max="1440" title="0 = nunca"></label>
+  </div>
+  <p>Qualidade e volume valem ao recarregar o quadro. Chat oculto continua conectado, então ainda conta para o bônus.</p>
+    <button class="btn" id="btnLogout">Sair das contas (Twitch e Kick)</button>
+</div>
+
+<div id="grid"></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const ICON = {
+    chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    reload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg>',
+    expand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+    power: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0"/></svg>'
+  };
+  const STATUS_TXT = { live: 'Ao vivo', offline: 'Offline', loading: 'Carregando' };
+
+  let cfg = null;
+  const tiles = [];      // { el, slot, status, timers }
+  let expanded = null;
+
+  // ---------- Layout ----------
+  function applyLayout() {
+    const grid = $('grid');
+    const active = tiles.filter(t => t.el.isConnected);
+    const n = active.length;
+    let cols, areas;
+    if (n <= 1) { cols = '1fr'; areas = ['a']; }
+    else if (n === 2) { cols = '1fr 1fr'; areas = ['a b']; }
+    else if (n === 3) { cols = '1fr 1fr 1fr'; areas = ['a b c']; }
+    else if (n === 4) { cols = '1fr 1fr'; areas = ['a b', 'c d']; }
+    else if (cfg.layout === '2-3') { cols = 'repeat(6, 1fr)'; areas = ['a a a b b b', 'c c d d e e']; }
+    // 4 em grade 2×2 (como o PokeGrid) e o quadro 1 flutuando no centro, por cima.
+    else if (cfg.layout === 'centro') { cols = '1fr 1fr'; areas = ['b c', 'd e']; }
+    else { cols = 'repeat(6, 1fr)'; areas = ['a a b b c c', 'd d d e e e']; }
+    grid.style.gridTemplateColumns = cols;
+    grid.style.gridTemplateRows = `repeat(${areas.length}, 1fr)`;
+    grid.style.gridTemplateAreas = areas.map(a => `"${a}"`).join(' ');
+    const floating = n === 5 && cfg.layout === 'centro';
+    active.forEach((t, k) => {
+      t.el.classList.toggle('floating', floating && k === 0);
+      t.el.style.gridArea = floating && k === 0 ? 'auto' : 'abcde'[k];
+    });
+    document.querySelectorAll('#layoutSeg button').forEach(b => b.classList.toggle('on', b.dataset.layout === cfg.layout));
+    updateBonus();
+  }
+
+  function updateBonus() {
+    // Só conta quadro com a live no ar (offline não dá bônus).
+    const n = tiles.filter(t => t.el.isConnected && t.slot.channel && t.status === 'live').length;
+    $('bonusN').textContent = n;
+    $('bonusPct').textContent = n === 0 ? '+0%' : '+' + String(15 + 2.5 * (Math.min(n, 5) - 1)).replace('.', ',') + '%';
+  }
+
+  // ---------- Quadro ----------
+   function playerUrl(slot) {
+    const ch = slot.channel;
+    if (slot.platform === 'kick') {
+      const p = new URLSearchParams({ autoplay: 'true', muted: 'false', ps_v: String(cfg.volume) });
+      return `https://player.kick.com/${ch}?` + p.toString();
+    }
+    const p = new URLSearchParams({ channel: ch, parent: 'twitch.tv', autoplay: 'true', muted: 'false', ps_q: cfg.quality, ps_v: String(cfg.volume) });
+    return 'https://player.twitch.tv/?' + p.toString();
+  }
+  function chatUrl(slot) {
+    if (slot.platform === 'kick') return `https://kick.com/popout/${slot.channel}/chat`;
+    return `https://www.twitch.tv/popout/${slot.channel}/chat?darkpopout`;
+  }
+  const PLAT_TXT = { twitch: 'TWITCH', kick: 'KICK' };
+
+  function setStatus(t, s) {
+    t.status = s;
+    const dot = t.el.querySelector('.bar .dot');
+    const badge = t.el.querySelector('.bar .badge');
+    dot.className = 'dot ' + (s || '');
+    if (s && t.slot.channel) { badge.hidden = false; badge.className = 'badge ' + s; badge.textContent = STATUS_TXT[s]; }
+    else badge.hidden = true;
+    updateBonus();
+  }
+
+  function buildTile(i) {
+    const el = document.createElement('div');
+    el.className = 'tile';
+    el.innerHTML = `
+      <div class="bar">
+        <span class="dot"></span>
+        <span class="plat" title="Clique para trocar entre Twitch e Kick"></span>
+        <span class="name" title="Clique para trocar o canal"></span>
+        <span class="badge" hidden></span>
+        <div class="tools">
+          <button data-act="edit" title="Trocar canal">${ICON.edit}</button>
+          <button data-act="chat" title="Mostrar/ocultar chat (continua conectado)">${ICON.chat}</button>
+          <button data-act="reload" title="Recarregar">${ICON.reload}</button>
+          <button data-act="expand" title="Expandir este quadro">${ICON.expand}</button>
+          <button data-act="off" title="Desligar este quadro">${ICON.power}</button>
+        </div>
+      </div>
+      <div class="body"></div>`;
+    const t = { i, el, slot: cfg.slots[i], status: null, timers: [] };
+    el.querySelector('.tools').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const act = b.dataset.act;
+      if (act === 'edit') editName(t);
+      if (act === 'chat') { ps.setSlot(i, { chat: !t.slot.chat }).then(c => { cfg = c; t.slot = c.slots[i]; renderChatMode(t); }); }
+      if (act === 'reload') reloadTile(t);
+      if (act === 'expand') toggleExpand(t);
+      if (act === 'off') setEnabled(i, false);
+    });
+    el.querySelector('.name').addEventListener('click', () => editName(t));
+        el.querySelector('.plat').addEventListener('click', async () => {
+      const next = t.slot.platform === 'kick' ? 'twitch' : 'kick';
+      if (t.slot.channel && !confirm(`Trocar o quadro ${i + 1} para a ${next === 'kick' ? 'Kick' : 'Twitch'}? O canal "${t.slot.channel}" vai abrir lá.`)) return;
+      cfg = await ps.setSlot(i, { platform: next });
+      t.slot = cfg.slots[i];
+      renderTile(t);
+      renderQuadros();
+    });
+    el.querySelector('.bar').addEventListener('dblclick', e => { if (!e.target.closest('button,.name')) toggleExpand(t); });
+    return t;
+  }
+
+  function renderTile(t) {
+    clearTimers(t);
+    const body = t.el.querySelector('.body');
+    body.innerHTML = '';
+    t.el.querySelector('.name').textContent = t.slot.channel || `Quadro ${t.i + 1}`;
+        const plat = t.el.querySelector('.plat');
+    plat.className = 'plat ' + (t.slot.platform || 'twitch');
+    plat.textContent = PLAT_TXT[t.slot.platform] || 'TWITCH';
+    t.el.querySelector('[data-act="chat"]').classList.toggle('off', !t.slot.chat);
+    setStatus(t, null);
+    if (!t.slot.channel) {
+      const box = document.createElement('div');
+      box.className = 'empty';
+            let pick = t.slot.platform || 'twitch';
+      box.innerHTML = `<form><div>Canal oficial para o quadro ${t.i + 1}</div>
+        <div class="platpick"><button type="button" class="twitch" data-p="twitch">Twitch</button><button type="button" class="kick" data-p="kick">Kick</button></div>
+        <input placeholder="nome do canal ou link (twitch.tv/... ou kick.com/...)" autofocus>
+        <button class="btn primary" type="submit">Abrir live</button></form>`;
+      const paint = () => box.querySelectorAll('.platpick button').forEach(b => b.classList.toggle('on', b.dataset.p === pick));
+      paint();
+      box.querySelector('.platpick').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { pick = b.dataset.p; paint(); } });
+      box.querySelector('form').addEventListener('submit', async e => {
+        e.preventDefault();
+        cfg = await ps.setSlot(t.i, { platform: pick, channel: box.querySelector('input').value });
+        t.slot = cfg.slots[t.i];
+        renderTile(t);
+        renderQuadros();
+            });
+      body.appendChild(box);
+      updateBonus();
+      return;
+    }
+    const player = document.createElement('webview');
+    player.className = 'player';
+    player.setAttribute('partition', 'persist:twitch');
+    player.setAttribute('webpreferences', 'backgroundThrottling=no');
+    player.src = playerUrl(t.slot);
+
+    const chat = document.createElement('webview');
+    chat.className = 'chat';
+    chat.setAttribute('partition', 'persist:twitch');
+    chat.setAttribute('webpreferences', 'backgroundThrottling=no');
+    chat.style.width = cfg.chatWidth + 'px';
+    chat.src = chatUrl(t.slot);
+
+    body.append(player, chat);
+    renderChatMode(t);
+    setStatus(t, 'loading');
+
+    player.addEventListener('ipc-message', e => { if (e.channel === 'status') setStatus(t, e.args[0]); });
+    chat.addEventListener('dom-ready', () => { try { chat.setZoomFactor(0.9); } catch (e) {} });
+    [player, chat].forEach(wv => {
+      wv.addEventListener('render-process-gone', () => later(t, () => wv.reload(), 3000));
+      wv.addEventListener('unresponsive', () => later(t, () => wv.reload(), 10000));
+      wv.addEventListener('did-fail-load', e => { if (e.isMainFrame && e.errorCode !== -3) later(t, () => wv.reload(), 15000); });
+    });
+    if (cfg.autoReloadMin > 0) t.timers.push(setInterval(() => reloadTile(t), cfg.autoReloadMin * 60000));
+    updateBonus();
+  }
+
+  function renderChatMode(t) {
+    t.el.querySelector('.body').classList.toggle('nochat', !t.slot.chat);
+    t.el.querySelector('[data-act="chat"]').classList.toggle('off', !t.slot.chat);
+  }
+  function later(t, fn, ms) { t.timers.push(setTimeout(fn, ms)); }
+  function clearTimers(t) { t.timers.forEach(x => { clearTimeout(x); clearInterval(x); }); t.timers = []; }
+
+  function reloadTile(t) {
+    if (!t.slot.channel) return;
+    const p = t.el.querySelector('webview.player'), c = t.el.querySelector('webview.chat');
+    if (p) { p.src = playerUrl(t.slot); setStatus(t, 'loading'); }
+    if (c) c.reload();
+  }
+
+  async function setChannel(t, value) {
+    cfg = await ps.setSlot(t.i, { channel: value });
+    t.slot = cfg.slots[t.i];
+    renderTile(t);
+  }
+
+  function editName(t) {
+    const name = t.el.querySelector('.name');
+    if (name.querySelector('input')) return;
+    const inp = document.createElement('input');
+    inp.value = t.slot.channel;
+    inp.placeholder = 'canal (vazio = limpar)';
+    name.textContent = '';
+    name.appendChild(inp);
+    inp.focus(); inp.select();
+    let done = false;
+    const finish = save => {
+      if (done) return; done = true;
+      if (save && inp.value.trim() !== t.slot.channel) setChannel(t, inp.value);
+      else name.textContent = t.slot.channel || `Quadro ${t.i + 1}`;
+    };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); });
+    inp.addEventListener('blur', () => finish(true));
+  }
+
+  function toggleExpand(t) {
+    if (expanded && expanded !== t) expanded.el.classList.remove('expanded');
+    expanded = expanded === t ? null : t;
+    t.el.classList.toggle('expanded', expanded === t);
+  }
+
+  async function setEnabled(i, on) {
+    cfg = await ps.setSlot(i, { enabled: on });
+    const t = tiles[i];
+    t.slot = cfg.slots[i];
+    if (expanded === t) toggleExpand(t);
+    if (on) { mountTiles(); renderTile(t); }
+    else { clearTimers(t); t.el.querySelector('.body').innerHTML = ''; t.el.remove(); }
+    applyLayout();
+    renderQuadros();
+  }
+
+  function mountTiles() {
+    const grid = $('grid');
+    tiles.forEach(t => { if (t.slot.enabled && !t.el.isConnected) grid.appendChild(t.el); });
+    // mantém a ordem 1..5
+    tiles.filter(t => t.el.isConnected).forEach(t => grid.appendChild(t.el));
+  }
+
+  // ---------- Opções ----------
+  function renderQuadros() {
+    $('quadros').innerHTML = cfg.slots.map((s, i) =>
+      `<label class="check"><input type="checkbox" data-q="${i}" ${s.enabled ? 'checked' : ''}> Quadro ${i + 1}${s.channel ? ' — ' + s.channel + (s.platform === 'kick' ? ' (Kick)' : ' (Twitch)') : ''}</label>`).join('');
+  }
+  $('quadros').addEventListener('change', e => { const i = e.target.dataset.q; if (i != null) setEnabled(Number(i), e.target.checked); });
+  $('btnOpts').onclick = e => { e.stopPropagation(); $('opts').classList.toggle('open'); };
+  document.addEventListener('click', e => { if (!e.target.closest('#opts')) $('opts').classList.remove('open'); });
+
+  $('optQuality').onchange = async e => { cfg = await ps.setOption('quality', e.target.value); };
+  $('optVolume').onchange = async e => { cfg = await ps.setOption('volume', Number(e.target.value)); };
+  $('optChatW').onchange = async e => {
+    cfg = await ps.setOption('chatWidth', e.target.value);
+    e.target.value = cfg.chatWidth;
+    document.querySelectorAll('webview.chat').forEach(w => { w.style.width = cfg.chatWidth + 'px'; });
+  };
+  $('optReload').onchange = async e => {
+    cfg = await ps.setOption('autoReloadMin', e.target.value);
+    e.target.value = cfg.autoReloadMin;
+    tiles.forEach(t => { if (t.el.isConnected) renderTile(t); });
+  };
+  document.querySelectorAll('#layoutSeg button').forEach(b => b.onclick = async () => { cfg = await ps.setOption('layout', b.dataset.layout); applyLayout(); });
+
+  $('btnReloadAll').onclick = () => tiles.forEach(t => { if (t.el.isConnected) reloadTile(t); });
+  $('btnFull').onclick = () => ps.toggleFullscreen();
+    $('accTwitch').onclick = () => ps.login('twitch');
+  $('accKick').onclick = () => ps.login('kick');
+  $('btnLogout').onclick = async () => { if (confirm('Sair das contas da Twitch e da Kick neste app?')) await ps.logout(); };
+
+  function renderLogin(u) {
+    u = u || {};
+    const tw = $('accTwitch'), kk = $('accKick');
+    tw.classList.toggle('on', !!u.twitch);
+    tw.lastElementChild.textContent = u.twitch ? 'Twitch: ' + u.twitch : 'Entrar na Twitch';
+    tw.title = u.twitch ? 'Conectado na Twitch. Clique para trocar de conta.' : 'Entrar na Twitch';
+    kk.classList.toggle('on', !!u.kick);
+    kk.lastElementChild.textContent = u.kick ? 'Kick: conectado' : 'Entrar na Kick';
+    kk.title = u.kick ? 'Conectado na Kick. Clique para abrir a Kick de novo.' : 'Entrar na Kick';
+  }
+  ps.onLogin(renderLogin);
+  ps.onReloadAll(() => tiles.forEach(t => { if (t.el.isConnected) renderTile(t); }));
+
+  // Esc sai do quadro expandido.
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && expanded) toggleExpand(expanded); });
+
+  // ---------- Início ----------
+  ps.getState().then(s => {
+    cfg = s.config;
+    cfg.slots.forEach((_, i) => tiles.push(buildTile(i)));
+    mountTiles();
+    tiles.forEach(t => { if (t.slot.enabled) renderTile(t); });
+    applyLayout();
+    renderQuadros();
+    renderLogin(s.user);
+    $('optQuality').value = cfg.quality;
+    $('optVolume').value = String(cfg.volume);
+    $('optChatW').value = cfg.chatWidth;
+    $('optReload').value = cfg.autoReloadMin;
+  });
+</script>
+</body>
+</html>

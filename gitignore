@@ -1,0 +1,17 @@
+# Dependências (cada pessoa instala com npm ci)
+node_modules/
+
+# Dados locais e segredos: nunca vão para o repositório
+.env
+*.env
+config.json
+*.log
+
+# Builds
+dist/
+out/
+*.zip
+
+# Sistema
+.DS_Store
+Thumbs.db

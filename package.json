@@ -1,0 +1,13 @@
+{
+  "name": "pokestreams",
+  "version": "2.0.0",
+  "description": "PokeStreams: 5 lives da Twitch, em uma janela só (estilo PokeGrid), para o bônus de XP do Poke Idle World",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^44.7.0"
+  }
+}

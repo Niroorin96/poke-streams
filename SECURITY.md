@@ -39,7 +39,7 @@ O POKESTREAMS existe para ser **verificável**. Este documento diz o que o app f
 | **Resultado** | Nenhuma conexão de rede, execução remota ou envio de dados feitos pelo código do app. Comportamentos listados na seção "O que o app faz". |
   | **Dependências** | `npm audit` em 11/10/2026: 0 vulnerabilidades |
   | **Não coberto** | Revisão por IA é triagem e **não substitui** revisão humana. |
-| **Revisão da comunidade** | [pendente / nome de quem revisou] |
+| **Revisão da comunidade** | [pendente] |
 
 ### Hashes SHA-256 dos arquivos auditados
 

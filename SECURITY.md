@@ -1,6 +1,6 @@
 # Segurança e transparência
 
-O F2WSTREAMS existe para ser **verificável**. Este documento diz o que o app faz, o que ele não faz, como conferir e como reportar um problema.
+O POKESTREAMS existe para ser **verificável**. Este documento diz o que o app faz, o que ele não faz, como conferir e como reportar um problema.
 
 ## O que o app NÃO faz
 

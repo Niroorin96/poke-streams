@@ -42,7 +42,10 @@
   .tile { background: var(--bg); box-shadow: 0 0 0 1px var(--line); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
   .tile.floating { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 36%; height: 46%; min-width: 420px; min-height: 300px; z-index: 4;
     box-shadow: 0 0 0 2px var(--purple), 0 18px 48px rgba(0,0,0,.65); border-radius: 6px; overflow: hidden; }
-  .tile.expanded { position: absolute; inset: 0; z-index: 5; transform: none; width: auto; height: auto; border-radius: 0; }
+  /* Expandido = fixed (abaixo do cabeçalho de 46px). Com position:absolute o bloco de referência
+     era a própria célula da grade (por causa do grid-area), então só o quadro flutuante do meio expandia.
+     Os !important vencem o tamanho/posição que o layout "Auto" escreve direto no quadro. */
+  #grid .tile.expanded { position: fixed !important; top: 46px !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: auto !important; height: auto !important; z-index: 10; transform: none; min-width: 0; min-height: 0; border-radius: 0; box-shadow: none; }
   .bar { height: 30px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 10px; border-bottom: 1px solid var(--line); }
   .bar .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
   .bar .dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
@@ -69,7 +72,15 @@
   .badge.live { color: var(--green); border-color: rgba(63,185,80,.4); background: rgba(63,185,80,.1); }
   .badge.offline { color: var(--red); border-color: rgba(248,81,73,.4); background: rgba(248,81,73,.1); }
   .badge.loading { color: var(--yellow); border-color: rgba(210,153,34,.4); background: rgba(210,153,34,.1); }
-  .tools { margin-left: auto; display: flex; gap: 2px; }
+  .tools { margin-left: auto; display: flex; gap: 2px; flex: none; }
+  .bar { min-width: 0; overflow: hidden; }
+  .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .badge { flex: none; white-space: nowrap; }
+  /* Layout "centro": o quadro do meio cobre o miolo da grade (36% da largura, mín. 420px).
+     Os dois quadros de baixo juntam a barra no canto de fora para ela não ficar escondida. */
+  .tile.edge-l .bar { padding-right: calc(max(18vw, 210px) + 8px); justify-content: flex-start; }
+  .tile.edge-r .bar { padding-left: calc(max(18vw, 210px) + 8px); justify-content: flex-end; }
+  .tile.edge-l .tools, .tile.edge-r .tools { margin-left: 8px; }
   .tools button { background: transparent; border: 0; color: var(--muted); padding: 4px 5px; border-radius: 4px; cursor: pointer; display: inline-flex; }
   .tools button:hover { background: var(--chip); color: var(--text); }
   .tools button.off { opacity: .45; }
@@ -86,6 +97,47 @@
   .empty form { display: grid; gap: 10px; justify-items: center; color: var(--muted); }
   .empty input { background: var(--bg); color: var(--text); border: 1px solid var(--line2); border-radius: 6px; padding: 8px 10px; width: 240px; font: 14px system-ui; }
   .empty input:focus { outline: 2px solid var(--purple); border-color: transparent; }
+
+  /* ---------- Layout automático (16:9) ---------- */
+  #grid.auto { display: block; overflow: auto; }
+  #grid.auto .tile { position: absolute; }
+
+  /* ---------- Lives guardadas ---------- */
+  .sdot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .sdot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .sdot.offline { background: var(--red); }
+  .sdot.loading { background: var(--yellow); }
+  #lives, #pickMenu { background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.5); }
+  #lives { position: absolute; top: 50px; right: 12px; z-index: 20; width: 460px; max-height: calc(100vh - 70px); display: none; flex-direction: column; gap: 8px; padding: 12px; }
+  #lives.open { display: flex; }
+  #lives .hd { display: flex; align-items: center; gap: 8px; }
+  #lives h4 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); flex: 1; }
+  #lives .info { color: var(--muted); font-size: 11.5px; }
+  #livesList { overflow: auto; display: flex; flex-direction: column; gap: 1px; }
+  #lives p, #pickMenu p.muted { margin: 4px 6px; color: var(--muted); font-size: 11.5px; }
+  .lrow, .pitem { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 6px; }
+  .lrow:hover, .pitem:hover { background: var(--chip); }
+  .lrow .nm, .pitem .nm { font-weight: 700; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lrow .st, .pitem .st { color: var(--muted); font-size: 11.5px; flex: none; white-space: nowrap; }
+  .lrow .st.live, .pitem .st.live { color: var(--green); }
+  .lrow .st.offline, .pitem .st.offline { color: var(--red); }
+  .lrow .plat, .pitem .plat { cursor: default; }
+  .star, .mini { background: transparent; border: 0; border-radius: 5px; color: var(--muted); cursor: pointer; padding: 2px 6px; flex: none; }
+  .star { font-size: 15px; padding: 0 4px; }
+  .star.on { color: #ffd37a; }
+  .star:hover, .mini:hover { background: var(--chip); color: var(--text); }
+  .mini { border: 1px solid var(--line2); font-size: 11.5px; }
+  .mini.x { border: 0; }
+  #pickMenu { position: fixed; z-index: 30; display: none; width: 340px; overflow: auto; padding: 6px; }
+  #pickMenu.open { display: block; }
+  #pickMenu .phd { padding: 4px 8px 6px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .7px; }
+  .pitem { cursor: pointer; }
+  .pitem.dis { opacity: .5; cursor: default; }
+  .pitem.dis:hover { background: transparent; }
+  #toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 40; background: var(--panel); border: 1px solid var(--line2); border-radius: 8px; padding: 9px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 80vw; }
+  #toast.show { opacity: 1; }
+  /* Quadro oculto da checagem: fica atrás de tudo, quase transparente (mas "visível" para o player carregar). */
+  webview.probe { position: fixed; right: 0; bottom: 0; width: 400px; height: 300px; opacity: .01; pointer-events: none; z-index: -1; }
 
   /* ---------- Opções ---------- */
   #opts { position: absolute; top: 50px; right: 12px; z-index: 20; width: 320px; background: var(--panel); border: 1px solid var(--line2); border-radius: 10px; padding: 14px; display: none; box-shadow: 0 12px 32px rgba(0,0,0,.5); }
@@ -115,10 +167,10 @@
     <button data-layout="centro" title="4 em grade + 1 flutuando no meio"><svg viewBox="0 0 22 15" fill="currentColor"><rect x="0" y="0" width="10.5" height="7" rx="1" opacity=".55"/><rect x="11.5" y="0" width="10.5" height="7" rx="1" opacity=".55"/><rect x="0" y="8" width="10.5" height="7" rx="1" opacity=".55"/><rect x="11.5" y="8" width="10.5" height="7" rx="1" opacity=".55"/><rect x="6.5" y="3.5" width="9" height="8" rx="1"/></svg></button>
     <button data-layout="3-2" title="3 em cima, 2 embaixo"><svg viewBox="0 0 22 15" fill="currentColor"><rect x="0" y="0" width="6.6" height="7" rx="1"/><rect x="7.7" y="0" width="6.6" height="7" rx="1"/><rect x="15.4" y="0" width="6.6" height="7" rx="1"/><rect x="0" y="8" width="10.5" height="7" rx="1"/><rect x="11.5" y="8" width="10.5" height="7" rx="1"/></svg></button>
     <button data-layout="2-3" title="2 em cima, 3 embaixo"><svg viewBox="0 0 22 15" fill="currentColor"><rect x="0" y="0" width="10.5" height="7" rx="1"/><rect x="11.5" y="0" width="10.5" height="7" rx="1"/><rect x="0" y="8" width="6.6" height="7" rx="1"/><rect x="7.7" y="8" width="6.6" height="7" rx="1"/><rect x="15.4" y="8" width="6.6" height="7" rx="1"/></svg></button>
-
+    <button data-layout="auto" title="Automático: cada quadro em 16:9, o maior possível, sem tarjas pretas"><svg viewBox="0 0 22 15" fill="currentColor"><rect x="0" y="0" width="6.6" height="6" rx="1"/><rect x="7.7" y="0" width="6.6" height="6" rx="1"/><rect x="15.4" y="0" width="6.6" height="6" rx="1"/><rect x="3.85" y="9" width="6.6" height="6" rx="1"/><rect x="11.55" y="9" width="6.6" height="6" rx="1"/></svg></button>
   </div>
+  <button class="btn" id="btnLives" title="Lives guardadas, favoritas e status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Lives</button>
   <button class="btn" id="btnOpts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Opções</button>
-  <button class="btn" id="btnFull" title="Tela cheia (F11)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
 </header>
 
 <div id="opts">
@@ -148,8 +200,20 @@
     <label>Recarregar a cada (min)<input type="number" id="optReload" min="0" max="1440" title="0 = nunca"></label>
   </div>
   <p>Qualidade e volume valem ao recarregar o quadro. Chat oculto continua conectado, então ainda conta para o bônus.</p>
+  <h4>Geral</h4>
+  <label class="check"><input type="checkbox" id="optAwake"> Manter o PC acordado (a tela pode apagar)</label>
+  <label class="check"><input type="checkbox" id="optProbe"> Checar as lives guardadas sozinho quando um quadro cair</label>
+  <p>A checagem abre, uma de cada vez, o player oficial num quadro oculto, sem login e sem som. O botão "Atualizar status" da lista funciona mesmo com ela desligada.</p>
     <button class="btn" id="btnLogout">Sair das contas (Twitch e Kick)</button>
 </div>
+
+<div id="lives">
+  <div class="hd"><h4>Lives guardadas</h4><span class="info" id="livesInfo"></span><button class="btn" id="btnRefreshLives" title="Checa agora as lives guardadas que não estão abertas">Atualizar status</button></div>
+  <div id="livesList"></div>
+  <p>Toda live que você abre entra aqui. ☆ marca como favorita e ✕ remove. O status das lives abertas vem do próprio quadro.</p>
+</div>
+<div id="pickMenu"></div>
+<div id="toast"></div>
 
 <div id="grid"></div>
 
@@ -162,6 +226,7 @@
     edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
     power: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0"/></svg>'
   };
+  ICON.pick = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
   const STATUS_TXT = { live: 'Ao vivo', offline: 'Offline', loading: 'Carregando' };
 
   let cfg = null;
@@ -173,6 +238,18 @@
     const grid = $('grid');
     const active = tiles.filter(t => t.el.isConnected);
     const n = active.length;
+    if (cfg.layout === 'auto') {
+      // 16:9 sem tarjas: o tamanho e a posição de cada quadro vêm de layoutAuto().
+      grid.classList.add('auto');
+      grid.style.gridTemplateColumns = grid.style.gridTemplateRows = grid.style.gridTemplateAreas = '';
+      active.forEach(t => { t.el.classList.remove('floating', 'edge-l', 'edge-r'); t.el.style.gridArea = ''; });
+      layoutAuto();
+      document.querySelectorAll('#layoutSeg button').forEach(b => b.classList.toggle('on', b.dataset.layout === cfg.layout));
+      updateBonus();
+      return;
+    }
+    grid.classList.remove('auto');
+    active.forEach(t => { t.el.style.width = t.el.style.height = t.el.style.left = t.el.style.top = ''; });
     let cols, areas;
     if (n <= 1) { cols = '1fr'; areas = ['a']; }
     else if (n === 2) { cols = '1fr 1fr'; areas = ['a b']; }
@@ -188,6 +265,8 @@
     const floating = n === 5 && cfg.layout === 'centro';
     active.forEach((t, k) => {
       t.el.classList.toggle('floating', floating && k === 0);
+      t.el.classList.toggle('edge-l', floating && k === 3);
+      t.el.classList.toggle('edge-r', floating && k === 4);
       t.el.style.gridArea = floating && k === 0 ? 'auto' : 'abcde'[k];
     });
     document.querySelectorAll('#layoutSeg button').forEach(b => b.classList.toggle('on', b.dataset.layout === cfg.layout));
@@ -199,6 +278,8 @@
     const n = tiles.filter(t => t.el.isConnected && t.slot.channel && t.status === 'live').length;
     $('bonusN').textContent = n;
     $('bonusPct').textContent = n === 0 ? '+0%' : '+' + String(15 + 2.5 * (Math.min(n, 5) - 1)).replace('.', ',') + '%';
+    updateBadge();
+    refreshLists();
   }
 
   // ---------- Quadro ----------
@@ -224,6 +305,8 @@
     dot.className = 'dot ' + (s || '');
     if (s && t.slot.channel) { badge.hidden = false; badge.className = 'badge ' + s; badge.textContent = STATUS_TXT[s]; }
     else badge.hidden = true;
+    if (t.slot.channel && (s === 'live' || s === 'offline')) reportTile(t, s);
+    if (s === 'offline' && probeEnabled()) setTimeout(() => probeRound(false), 2000);   // já deixa a lista pronta
     updateBonus();
   }
 
@@ -237,6 +320,7 @@
         <span class="name" title="Clique para trocar o canal"></span>
         <span class="badge" hidden></span>
         <div class="tools">
+          <button data-act="pick" title="Escolher entre as lives guardadas">${ICON.pick}</button>
           <button data-act="edit" title="Trocar canal">${ICON.edit}</button>
           <button data-act="chat" title="Mostrar/ocultar chat (continua conectado)">${ICON.chat}</button>
           <button data-act="reload" title="Recarregar">${ICON.reload}</button>
@@ -249,6 +333,7 @@
     el.querySelector('.tools').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       const act = b.dataset.act;
+      if (act === 'pick') togglePick(t, b);
       if (act === 'edit') editName(t);
       if (act === 'chat') { ps.setSlot(i, { chat: !t.slot.chat }).then(c => { cfg = c; t.slot = c.slots[i]; renderChatMode(t); }); }
       if (act === 'reload') reloadTile(t);
@@ -331,6 +416,7 @@
   function renderChatMode(t) {
     t.el.querySelector('.body').classList.toggle('nochat', !t.slot.chat);
     t.el.querySelector('[data-act="chat"]').classList.toggle('off', !t.slot.chat);
+    if (cfg.layout === 'auto') layoutAuto();
   }
   function later(t, fn, ms) { t.timers.push(setTimeout(fn, ms)); }
   function clearTimers(t) { t.timers.forEach(x => { clearTimeout(x); clearInterval(x); }); t.timers = []; }
@@ -397,8 +483,7 @@
       `<label class="check"><input type="checkbox" data-q="${i}" ${s.enabled ? 'checked' : ''}> Quadro ${i + 1}${s.channel ? ' — ' + s.channel + (s.platform === 'kick' ? ' (Kick)' : ' (Twitch)') : ''}</label>`).join('');
   }
   $('quadros').addEventListener('change', e => { const i = e.target.dataset.q; if (i != null) setEnabled(Number(i), e.target.checked); });
-  $('btnOpts').onclick = e => { e.stopPropagation(); $('opts').classList.toggle('open'); };
-  document.addEventListener('click', e => { if (!e.target.closest('#opts')) $('opts').classList.remove('open'); });
+  $('btnOpts').onclick = e => { e.stopPropagation(); closePopups('opts'); $('opts').classList.toggle('open'); };
 
   $('optQuality').onchange = async e => { cfg = await ps.setOption('quality', e.target.value); };
   $('optVolume').onchange = async e => { cfg = await ps.setOption('volume', Number(e.target.value)); };
@@ -406,6 +491,7 @@
     cfg = await ps.setOption('chatWidth', e.target.value);
     e.target.value = cfg.chatWidth;
     document.querySelectorAll('webview.chat').forEach(w => { w.style.width = cfg.chatWidth + 'px'; });
+    if (cfg.layout === 'auto') layoutAuto();
   };
   $('optReload').onchange = async e => {
     cfg = await ps.setOption('autoReloadMin', e.target.value);
@@ -415,7 +501,6 @@
   document.querySelectorAll('#layoutSeg button').forEach(b => b.onclick = async () => { cfg = await ps.setOption('layout', b.dataset.layout); applyLayout(); });
 
   $('btnReloadAll').onclick = () => tiles.forEach(t => { if (t.el.isConnected) reloadTile(t); });
-  $('btnFull').onclick = () => ps.toggleFullscreen();
     $('accTwitch').onclick = () => ps.login('twitch');
   $('accKick').onclick = () => ps.login('kick');
   $('btnLogout').onclick = async () => { if (confirm('Sair das contas da Twitch e da Kick neste app?')) await ps.logout(); };
@@ -433,8 +518,273 @@
   ps.onLogin(renderLogin);
   ps.onReloadAll(() => tiles.forEach(t => { if (t.el.isConnected) renderTile(t); }));
 
-  // Esc sai do quadro expandido.
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && expanded) toggleExpand(expanded); });
+  // ---------- Layout automático: cada quadro em 16:9, sem tarjas pretas ----------
+  const AUTO_GAP = 6;
+  function layoutAuto() {
+    const grid = $('grid');
+    const active = tiles.filter(t => t.el.isConnected);
+    const n = active.length;
+    if (!n) return;
+    const W = grid.clientWidth, H = grid.clientHeight;
+    const bar = (active[0].el.querySelector('.bar') || {}).offsetHeight || 30;
+    const chatOf = t => (t.slot.chat ? cfg.chatWidth : 0);
+    // Escolhe quantas colunas dão o maior vídeo 16:9 para todos os quadros.
+    let best = null;
+    for (let c = 1; c <= n; c++) {
+      const r = Math.ceil(n / c);
+      const cellW = (W - AUTO_GAP * (c - 1)) / c;
+      const cellH = (H - AUTO_GAP * (r - 1)) / r;
+      let v = Infinity;
+      active.forEach(t => { v = Math.min(v, cellW - chatOf(t), (cellH - bar) * 16 / 9); });
+      if (!best || v > best.v + 0.5) best = { c, r, v };
+    }
+    const v = Math.max(400, Math.floor(best.v));            // o player nunca fica menor que 400 px
+    const h = Math.round(v * 9 / 16) + bar;
+    const rows = [];
+    for (let i = 0; i < n; i += best.c) rows.push(active.slice(i, i + best.c));
+    const totalH = rows.length * h + AUTO_GAP * (rows.length - 1);
+    let y = Math.max(0, Math.floor((H - totalH) / 2));
+    rows.forEach(row => {
+      const rowW = row.reduce((s, t) => s + v + chatOf(t), 0) + AUTO_GAP * (row.length - 1);
+      let x = Math.max(0, Math.floor((W - rowW) / 2));
+      row.forEach(t => {
+        t.el.style.width = (v + chatOf(t)) + 'px';
+        t.el.style.height = h + 'px';
+        t.el.style.left = x + 'px';
+        t.el.style.top = y + 'px';
+        x += v + chatOf(t) + AUTO_GAP;
+      });
+      y += h + AUTO_GAP;
+    });
+  }
+
+  // ---------- Selo vermelho na barra de tarefas quando uma live fica offline ----------
+  let lastBadge = -1;
+  function updateBadge() {
+    const n = tiles.filter(t => t.el.isConnected && t.slot.channel && t.status === 'offline').length;
+    if (n !== lastBadge) { lastBadge = n; ps.setBadge(n); }
+  }
+
+  // ---------- Lives guardadas ----------
+  const SAVED_FRESH_MS = 10 * 60000;   // quanto tempo um status checado ainda vale como "atual"
+  const PROBE_MIN_GAP = 5 * 60000;     // intervalo mínimo entre checagens automáticas da mesma live
+  const PROBE_MAX_AUTO = 8, PROBE_MAX_FORCE = 20, PROBE_TIMEOUT = 30000;
+  let pickFor = null, toastTimer = null;
+  const probe = { running: false };
+
+  const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  function toast(msg) {
+    const el = $('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  }
+  function ago(ts) {
+    const s = Math.max(0, (Date.now() - ts) / 1000);
+    if (s < 60) return 'menos de 1 min';
+    if (s < 3600) return Math.round(s / 60) + ' min';
+    if (s < 86400) return Math.round(s / 3600) + ' h';
+    return Math.round(s / 86400) + ' d';
+  }
+  const tileFor = e => tiles.find(t => t.el.isConnected && t.slot.channel === e.channel && t.slot.platform === e.platform);
+  const findKey = k => { const i = k.indexOf(':'); return cfg.saved.find(e => e.platform === k.slice(0, i) && e.channel === k.slice(i + 1)); };
+
+  // Estado de uma live guardada: quadro aberto > checagem recente > "visto ao vivo há X".
+  function statusOf(e) {
+    const t = tileFor(e);
+    if (t) {
+      if (t.status === 'live') return { state: 'live', text: 'Ao vivo' };
+      if (t.status === 'offline') return { state: 'offline', text: 'Offline' };
+      return { state: 'loading', text: 'Carregando' };
+    }
+    if (e.lastStatus && Date.now() - e.lastChecked < SAVED_FRESH_MS) {
+      return { state: e.lastStatus, text: (e.lastStatus === 'live' ? 'Ao vivo' : 'Offline') + ' · checado há ' + ago(e.lastChecked) };
+    }
+    return { state: 'unknown', text: e.lastSeenLive ? 'Visto ao vivo há ' + ago(e.lastSeenLive) : 'Ainda sem checagem' };
+  }
+  // Ao vivo primeiro, depois favoritas, depois as sem status, e as offline por último.
+  function sortedSaved() {
+    const rank = e => { const st = statusOf(e).state; return st === 'live' ? 0 : e.fav ? 1 : st === 'offline' ? 3 : 2; };
+    return cfg.saved.slice().sort((a, b) => rank(a) - rank(b) || b.lastSeenLive - a.lastSeenLive || b.added - a.added);
+  }
+
+  function renderLives() {
+    const box = $('livesList');
+    const list = sortedSaved();
+    if (!list.length) { box.innerHTML = '<p class="muted">Nenhuma live guardada ainda. Toda live que você abrir entra aqui.</p>'; return; }
+    box.innerHTML = list.map(e => {
+      const st = statusOf(e), t = tileFor(e);
+      return `<div class="lrow" data-k="${esc(e.platform + ':' + e.channel)}">
+        <button class="star${e.fav ? ' on' : ''}" data-a="fav" title="${e.fav ? 'Tirar dos favoritos' : 'Favoritar'}">${e.fav ? '★' : '☆'}</button>
+        <span class="sdot ${st.state}"></span>
+        <span class="plat ${e.platform}">${PLAT_TXT[e.platform]}</span>
+        <span class="nm" title="${esc(e.channel)}">${esc(e.channel)}</span>
+        <span class="st ${st.state}">${esc(st.text)}</span>
+        ${t ? `<span class="st">Quadro ${t.i + 1}</span>` : '<button class="mini" data-a="use" title="Colocar num quadro offline ou vazio">Usar</button>'}
+        <button class="mini x" data-a="del" title="Remover da lista">✕</button>
+      </div>`;
+    }).join('');
+  }
+  function renderPick() {
+    const t = pickFor; if (!t) return;
+    const menu = $('pickMenu'), keep = menu.scrollTop;
+    const rows = sortedSaved().map(e => {
+      const st = statusOf(e), used = tileFor(e);
+      const note = used ? (used === t ? 'neste quadro' : 'quadro ' + (used.i + 1)) : st.text;
+      return `<div class="pitem${used ? ' dis' : ''}" data-a="${used ? '' : 'pick'}" data-k="${esc(e.platform + ':' + e.channel)}">
+        <span class="sdot ${st.state}"></span>
+        <span class="plat ${e.platform}">${PLAT_TXT[e.platform]}</span>
+        <span class="nm">${e.fav ? '★ ' : ''}${esc(e.channel)}</span>
+        <span class="st ${used ? '' : st.state}">${esc(note)}</span>
+      </div>`;
+    }).join('') || '<p class="muted">Nenhuma live guardada ainda.</p>';
+    menu.innerHTML = `<div class="phd">Trocar o quadro ${t.i + 1}</div>${rows}
+      <div class="pitem" data-a="type">＋ Digitar outro canal…</div>
+      <div class="pitem" data-a="manage">☰ Gerenciar a lista</div>`;
+    menu.scrollTop = keep;
+  }
+  function refreshLists() {
+    if (!cfg) return;
+    if ($('lives').classList.contains('open')) renderLives();
+    if ($('pickMenu').classList.contains('open')) renderPick();
+  }
+
+  function closePopups(except) {
+    if (except !== 'opts') $('opts').classList.remove('open');
+    if (except !== 'lives') $('lives').classList.remove('open');
+    if (except !== 'pick') { $('pickMenu').classList.remove('open'); pickFor = null; }
+  }
+  function openLives() {
+    closePopups('lives');
+    $('lives').classList.add('open');
+    renderLives();
+    if (probeEnabled()) probeRound(false);
+  }
+  function togglePick(t, btn) {
+    const menu = $('pickMenu');
+    if (menu.classList.contains('open') && pickFor === t) { closePopups(); return; }
+    closePopups('pick');
+    pickFor = t;
+    menu.classList.add('open');
+    renderPick();
+    const r = btn.getBoundingClientRect(), w = menu.offsetWidth || 330, top = r.bottom + 4;
+    menu.style.left = Math.max(8, Math.min(r.right - w, innerWidth - w - 8)) + 'px';
+    menu.style.top = top + 'px';
+    menu.style.maxHeight = Math.max(160, innerHeight - top - 12) + 'px';
+    if (probeEnabled()) probeRound(false);
+  }
+  async function assign(t, e) {
+    cfg = await ps.setSlot(t.i, { platform: e.platform, channel: e.channel });
+    t.slot = cfg.slots[t.i];
+    renderTile(t);
+    renderQuadros();
+  }
+  // Onde a live escolhida entra: primeiro o quadro offline, depois um quadro vazio.
+  function pickTarget() {
+    const on = tiles.filter(t => t.el.isConnected);
+    return on.find(t => t.slot.channel && t.status === 'offline') || on.find(t => !t.slot.channel) || null;
+  }
+
+  $('btnLives').onclick = ev => { ev.stopPropagation(); if ($('lives').classList.contains('open')) closePopups(); else openLives(); };
+  $('btnRefreshLives').onclick = () => probeRound(true);
+  $('livesList').addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-a]'), row = ev.target.closest('.lrow');
+    if (!b || !row) return;
+    const e = findKey(row.dataset.k); if (!e) return;
+    if (b.dataset.a === 'fav') { const c = await ps.savedFav(e.platform, e.channel, !e.fav); cfg.saved = c.saved; renderLives(); }
+    if (b.dataset.a === 'del') { const c = await ps.savedRemove(e.platform, e.channel); cfg.saved = c.saved; renderLives(); }
+    if (b.dataset.a === 'use') {
+      const t = pickTarget();
+      if (!t) return toast('Nenhum quadro está offline ou vazio. Use o menu ▾ de um quadro para escolher qual trocar.');
+      closePopups();
+      assign(t, e);
+    }
+  });
+  $('pickMenu').addEventListener('click', ev => {
+    const it = ev.target.closest('[data-a]'); if (!it) return;
+    const a = it.dataset.a, t = pickFor;
+    if (a === 'pick' && t) { const e = findKey(it.dataset.k); closePopups(); if (e) assign(t, e); }
+    else if (a === 'type' && t) { closePopups(); editName(t); }
+    else if (a === 'manage') { closePopups(); openLives(); }
+  });
+  document.addEventListener('click', ev => {
+    if (!ev.target.closest('#opts, #btnOpts, #lives, #btnLives, #pickMenu, [data-act="pick"]')) closePopups();
+  });
+  window.addEventListener('blur', () => closePopups());   // clicar dentro de uma live também fecha os menus
+
+  $('optAwake').onchange = async ev => { cfg = await ps.setOption('keepAwake', ev.target.checked); };
+  $('optProbe').onchange = async ev => { cfg = await ps.setOption('probeSaved', ev.target.checked); };
+
+  // ---------- Status das lives guardadas ----------
+  // Um quadro oculto por vez abre o player oficial (sem login, sem som, 160p) só para ler o status
+  // que o webview-preload.js já informa. Roda quando algum quadro cai, ou com a lista/menu aberto.
+  const probeEnabled = () => cfg && cfg.probeSaved !== false;
+  function probeUrl(e) {
+    if (e.platform === 'kick') return 'https://player.kick.com/' + e.channel + '?' + new URLSearchParams({ autoplay: 'true', muted: 'true', ps_v: '0' });
+    return 'https://player.twitch.tv/?' + new URLSearchParams({ channel: e.channel, parent: 'twitch.tv', autoplay: 'true', muted: 'true', ps_q: '160p30', ps_v: '0' });
+  }
+  function probeOne(e) {
+    return new Promise(resolve => {
+      const wv = document.createElement('webview');
+      wv.className = 'probe';
+      wv.setAttribute('partition', 'probe');
+      wv.setAttribute('webpreferences', 'backgroundThrottling=no');
+      let done = false;
+      const finish = res => { if (done) return; done = true; clearTimeout(timer); wv.remove(); resolve(res); };
+      const timer = setTimeout(() => finish('unknown'), PROBE_TIMEOUT);
+      wv.addEventListener('dom-ready', () => { try { wv.setAudioMuted(true); } catch (_) {} });
+      wv.addEventListener('ipc-message', ev => { if (ev.channel === 'status' && (ev.args[0] === 'live' || ev.args[0] === 'offline')) finish(ev.args[0]); });
+      wv.addEventListener('did-fail-load', ev => { if (ev.isMainFrame && ev.errorCode !== -3) finish('unknown'); });
+      wv.src = probeUrl(e);
+      document.body.appendChild(wv);
+    });
+  }
+  function setLivesInfo(txt) { $('livesInfo').textContent = txt; }
+  async function probeRound(force) {
+    if (probe.running || !cfg) return;
+    const now = Date.now();
+    let list = cfg.saved.filter(e => !tileFor(e));   // quem está aberto já tem o status do próprio quadro
+    if (force) list = list.sort((a, b) => a.lastChecked - b.lastChecked).slice(0, PROBE_MAX_FORCE);
+    else {
+      const order = sortedSaved();
+      list = list.filter(e => now - e.lastChecked > PROBE_MIN_GAP).sort((a, b) => order.indexOf(a) - order.indexOf(b)).slice(0, PROBE_MAX_AUTO);
+    }
+    if (!list.length) { if (force) toast('Nenhuma live guardada para checar (as abertas já mostram o status do quadro).'); return; }
+    probe.running = true;
+    try {
+      for (let i = 0; i < list.length; i++) {
+        setLivesInfo(`Checando ${i + 1}/${list.length}…`);
+        const res = await probeOne(list[i]);
+        const c = await ps.reportStatus(list[i].platform, list[i].channel, res);
+        cfg.saved = c.saved;
+        refreshLists();
+      }
+    } finally { probe.running = false; setLivesInfo(''); refreshLists(); }
+  }
+  // A cada minuto: se algum quadro está offline e ainda não sabemos de lives guardadas no ar, checa.
+  function probeTick() {
+    if (!probeEnabled() || probe.running) return;
+    if ($('lives').classList.contains('open') || $('pickMenu').classList.contains('open')) return probeRound(false);
+    const offline = tiles.filter(t => t.el.isConnected && t.slot.channel && t.status === 'offline').length;
+    if (!offline) return;
+    const knownLive = cfg.saved.filter(e => !tileFor(e) && e.lastStatus === 'live' && Date.now() - e.lastChecked < SAVED_FRESH_MS).length;
+    if (knownLive >= offline) return;
+    probeRound(false);
+  }
+  function reportTile(t, s) {
+    ps.reportStatus(t.slot.platform, t.slot.channel, s).then(c => { cfg.saved = c.saved; refreshLists(); }).catch(() => {});
+  }
+  // Mantém "checado há X" fresco para as lives que estão nos quadros.
+  function heartbeat() {
+    tiles.forEach(t => { if (t.el.isConnected && t.slot.channel && (t.status === 'live' || t.status === 'offline')) reportTile(t, t.status); });
+  }
+
+  // Esc fecha menus; depois, sai do quadro expandido.
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if ($('opts').classList.contains('open') || $('lives').classList.contains('open') || $('pickMenu').classList.contains('open')) closePopups();
+    else if (expanded) toggleExpand(expanded);
+  });
 
   // ---------- Início ----------
   ps.getState().then(s => {
@@ -449,6 +799,11 @@
     $('optVolume').value = String(cfg.volume);
     $('optChatW').value = cfg.chatWidth;
     $('optReload').value = cfg.autoReloadMin;
+    $('optAwake').checked = cfg.keepAwake !== false;
+    $('optProbe').checked = cfg.probeSaved !== false;
+    new ResizeObserver(() => { if (cfg.layout === 'auto') layoutAuto(); }).observe($('grid'));
+    setInterval(heartbeat, 120000);
+    setInterval(probeTick, 60000);
   });
 </script>
 </body>

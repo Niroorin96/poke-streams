@@ -49,10 +49,13 @@ Não existe um `.exe` do POKESTREAMS. O que roda é o **Electron oficial** (baix
 - **Disposição** (botões ao lado de "Opções"):
   - **Centro** (padrão): 4 lives em grade 2×2 e o **quadro 1 flutuando no meio**.
   - **3 + 2** e **2 + 3**.
+  - **Auto**: cada quadro fica em 16:9, o maior possível, sem tarjas pretas nos players.
   - Com menos quadros ligados, a grade se ajusta sozinha.
-- **Barra de cada quadro:** status (Ao vivo / Offline / Carregando), trocar canal e plataforma, mostrar o chat, recarregar, expandir (duplo clique; **Esc** volta) e desligar o quadro.
+- **Barra de cada quadro:** status (Ao vivo / Offline / Carregando), trocar canal e plataforma, escolher entre as lives guardadas (botão ▾), mostrar o chat, recarregar, expandir (duplo clique; **Esc** volta) e desligar o quadro.
 - **Bônus no topo:** conta só os quadros que estão **ao vivo**.
-- **Opções:** ligar/desligar quadros, qualidade (160p por padrão), volume inicial (5%), largura do chat, recarga automática e **Sair das contas**.
+- **Selo vermelho:** quando uma live ligada fica offline, o ícone do app na barra de tarefas ganha uma bolinha vermelha (no Windows) e a janela pisca se estiver em segundo plano. Some quando todas voltam.
+- **Lives** (botão ao lado de "Opções"): toda live que você abre fica guardada, com ☆ para favoritar e ✕ para remover. A lista mostra quais estão no ar (as abertas, pelo próprio quadro; as outras, pela última checagem) e o botão **Usar** coloca a live no primeiro quadro offline ou vazio.
+- **Opções:** ligar/desligar quadros, qualidade (160p por padrão), volume inicial (5%), largura do chat, recarga automática, manter o PC acordado, checagem das lives guardadas e **Sair das contas**.
 
 ## Para o bônus contar
 
@@ -61,13 +64,13 @@ Não existe um `.exe` do POKESTREAMS. O que roda é o **Electron oficial** (baix
 - O player nunca fica menor que 400 px de largura.
 - Só valem os **canais oficiais** que aparecem no bônus do jogo.
 - Use **só a sua conta**. Várias contas para inflar audiência é viewbot e pode dar ban na plataforma.
-- Pode desligar a tela, mas não deixe o PC entrar em suspensão.
+- Pode desligar a tela. O app mantém o PC acordado (**Opções → Manter o PC acordado**, ligado por padrão). Com essa opção desligada, não deixe o PC entrar em suspensão.
 
 ## Privacidade e segurança (resumo)
 
 - **A senha é digitada só na página oficial** da Twitch/Kick. O app não injeta nada nessa janela e não lê nem guarda senha.
-- **O app não envia dados para nenhum servidor**: não tem telemetria, não tem atualização automática e o código dele não faz nenhuma requisição própria. Só as páginas oficiais da Twitch e da Kick carregam dentro dos quadros.
-- **O que fica no seu PC:** um `config.json` (canais, disposição, qualidade, volume, posição da janela) e a sessão da Twitch/Kick, como num navegador.
+- **O app não envia dados para nenhum servidor**: não tem telemetria, não tem atualização automática e o código dele não faz nenhuma requisição própria. Só as páginas oficiais da Twitch e da Kick carregam dentro dos quadros. A checagem das lives guardadas também usa só o player oficial, num quadro oculto (um por vez, sem login e sem som), e pode ser desligada em Opções.
+- **O que fica no seu PC:** um `config.json` (canais, lives guardadas, disposição, qualidade, volume, posição da janela) e a sessão da Twitch/Kick, como num navegador.
 - Links fora da Twitch/Kick abrem no seu navegador. Câmera, microfone, localização e notificações ficam bloqueados.
 - **Opções → Sair das contas** apaga a sessão do app.
 

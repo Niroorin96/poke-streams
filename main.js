@@ -1,7 +1,7 @@
 // PokeStreams — uma janela só com até 5 lives da Twitch em grade (estilo PokeGrid).
 // Cada quadro = <webview> do player + <webview> do chat, todos na MESMA sessão
 // (persist:twitch), para você entrar na Twitch uma vez só.
-const { app, BrowserWindow, ipcMain, screen, shell, session } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, shell, session, powerSaveBlocker, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -12,6 +12,10 @@ const STREAM_HOSTS = [
   'kick.com'                                                               // Kick
 ];
 const PLATFORMS = ['twitch', 'kick'];
+// Quadro oculto que só checa se uma live guardada está no ar: partição só em memória
+// (sem "persist:"), então não usa a sua conta nem mexe nas preferências dos quadros.
+const PROBE_PARTITION = 'probe';
+const MAX_SAVED = 60;
 
 // O Poke Idle World precisa que a live toque sem clique.
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
@@ -26,11 +30,14 @@ app.userAgentFallback = app.userAgentFallback
 const CONFIG_PATH = () => path.join(app.getPath('userData'), 'config.json');
 const DEFAULT_CONFIG = {
   slots: Array.from({ length: SLOTS }, () => ({ platform: 'twitch', channel: '', enabled: true, chat: false })),
-  layout: 'centro',     // 'centro' (1 no meio + 4 nos cantos) | '3-2' | '2-3'
+  layout: 'centro',     // 'centro' (1 no meio + 4 nos cantos) | '3-2' | '2-3' | 'auto' (16:9, sem tarjas)
   quality: '160p30',
   volume: 0.05,         // volume baixo em vez de mudo
   chatWidth: 260,
   autoReloadMin: 0,
+  keepAwake: true,      // impede o PC de suspender (a tela pode apagar)
+  probeSaved: true,     // checa sozinho as lives guardadas quando algum quadro cai
+  saved: [],            // lives guardadas: { platform, channel, fav, added, lastSeenLive, lastStatus, lastChecked }
   window: null          // { bounds, maximized, fullscreen }
 };
 
@@ -40,6 +47,9 @@ function loadConfig() {
        const merged = { ...DEFAULT_CONFIG, ...c };
    merged.slots = DEFAULT_CONFIG.slots.map((d, i) => ({ ...d, ...(c.slots && c.slots[i]) }));
    merged.slots = merged.slots.map(s => ({ ...s, ...parseChannel(s.channel, s.platform) }));
+   merged.saved = cleanSaved(merged.saved);
+   merged.keepAwake = merged.keepAwake !== false;
+   merged.probeSaved = merged.probeSaved !== false;
    return merged;
   } catch {
     return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
@@ -73,6 +83,45 @@ function parseChannel(s, platform) {
   return { platform: p, channel: s.replace(re, '').slice(0, 30).toLowerCase() };
 }
 
+// ---------- Lives guardadas ----------
+function cleanSaved(list) {
+  const out = [], seen = new Set();
+  (Array.isArray(list) ? list : []).forEach(e => {
+    if (!e || typeof e !== 'object') return;
+    const r = parseChannel(e.channel, e.platform);
+    const key = r.platform + ':' + r.channel;
+    if (!r.channel || seen.has(key)) return;
+    seen.add(key);
+    out.push({
+      platform: r.platform, channel: r.channel,
+      fav: !!e.fav,
+      added: Number(e.added) || Date.now(),
+      lastSeenLive: Number(e.lastSeenLive) || 0,
+      lastStatus: e.lastStatus === 'live' || e.lastStatus === 'offline' ? e.lastStatus : null,
+      lastChecked: Number(e.lastChecked) || 0
+    });
+  });
+  return out;
+}
+function findSaved(platform, channel) {
+  return config.saved.find(e => e.platform === platform && e.channel === channel);
+}
+// Toda live que entra num quadro vai para a lista. Passou de MAX_SAVED, sai a mais antiga que não é favorita.
+function upsertSaved(platform, channel) {
+  if (!channel) return;
+  if (findSaved(platform, channel)) return;
+  config.saved.push({ platform, channel, fav: false, added: Date.now(), lastSeenLive: 0, lastStatus: null, lastChecked: 0 });
+  while (config.saved.length > MAX_SAVED) {
+    let idx = -1, oldest = Infinity;
+    config.saved.forEach((e, i) => {
+      const t = Math.max(e.lastSeenLive, e.added);
+      if (!e.fav && t < oldest) { oldest = t; idx = i; }
+    });
+    if (idx < 0) break;
+    config.saved.splice(idx, 1);
+  }
+}
+
 // ---------- Segurança de todo conteúdo web (webviews e popups) ----------
 app.on('web-contents-created', (_e, wc) => {
   // Webviews: só a página do app pode criá-las, sempre sem Node e na sessão da Twitch.
@@ -82,8 +131,9 @@ app.on('web-contents-created', (_e, wc) => {
     webPreferences.nodeIntegration = false;
     webPreferences.contextIsolation = true;
     webPreferences.backgroundThrottling = false;
-    webPreferences.partition = PARTITION;
-    params.partition = PARTITION;
+    const probe = params.partition === PROBE_PARTITION;   // só o quadro oculto de checagem usa a partição própria
+    webPreferences.partition = probe ? PROBE_PARTITION : PARTITION;
+    params.partition = probe ? PROBE_PARTITION : PARTITION;
     if (!isStreamUrl(params.src)) _ev.preventDefault();
   });
 
@@ -207,20 +257,92 @@ ipcMain.handle('set-slot', (_e, i, data) => {
   }
   if ('enabled' in data) slot.enabled = !!data.enabled;
   if ('chat' in data) slot.chat = !!data.chat;
+  if (slot.channel) upsertSaved(slot.platform, slot.channel);
   saveConfig();
   return config;
 });
 ipcMain.handle('set-option', (_e, key, value) => {
-  if (!(key in DEFAULT_CONFIG) || key === 'slots' || key === 'window') return config;
+  if (!(key in DEFAULT_CONFIG) || key === 'slots' || key === 'window' || key === 'saved') return config;
   if (key === 'volume') value = Math.min(1, Math.max(0, Number(value) || 0));
   if (key === 'chatWidth') value = Math.min(500, Math.max(200, parseInt(value, 10) || 260));
   if (key === 'autoReloadMin') value = Math.max(0, Math.min(1440, parseInt(value, 10) || 0));
   if (key === 'quality' && !['160p30', '360p30', '480p30', '720p30', '720p60', 'chunked'].includes(value)) return config;
-  if (key === 'layout' && !['centro', '3-2', '2-3'].includes(value)) return config;
+  if (key === 'layout' && !['centro', '3-2', '2-3', 'auto'].includes(value)) return config;
+  if (key === 'keepAwake' || key === 'probeSaved') value = !!value;
   config[key] = value;
+  if (key === 'keepAwake') applyKeepAwake();
   saveConfig();
   return config;
 });
+
+// ---------- Lives guardadas: status, favoritos, remover ----------
+// status: 'live' | 'offline' | 'unknown' (a checagem não conseguiu decidir). Só atualiza o que já está guardado.
+ipcMain.handle('report-status', (_e, platform, channel, status) => {
+  if (!['live', 'offline', 'unknown'].includes(status)) return config;
+  const r = parseChannel(channel, platform);
+  const e = r.channel && findSaved(r.platform, r.channel);
+  if (!e) return config;
+  const now = Date.now();
+  e.lastChecked = now;
+  if (status === 'live') { e.lastStatus = 'live'; e.lastSeenLive = now; }
+  else if (status === 'offline') e.lastStatus = 'offline';
+  saveConfig();
+  return config;
+});
+ipcMain.handle('saved-fav', (_e, platform, channel, fav) => {
+  const r = parseChannel(channel, platform);
+  const e = r.channel && findSaved(r.platform, r.channel);
+  if (e) { e.fav = !!fav; saveConfig(); }
+  return config;
+});
+ipcMain.handle('saved-remove', (_e, platform, channel) => {
+  const r = parseChannel(channel, platform);
+  config.saved = config.saved.filter(x => !(x.platform === r.platform && x.channel === r.channel));
+  saveConfig();
+  return config;
+});
+
+// ---------- Selo vermelho quando uma live cai ----------
+let offlineCount = 0;
+let dotImage = null;
+// Bolinha vermelha com borda branca, desenhada aqui mesmo (BGRA), sem arquivo de imagem.
+function redDot() {
+  if (dotImage) return dotImage;
+  const S = 32, buf = Buffer.alloc(S * S * 4), c = (S - 1) / 2;
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const d = Math.hypot(x - c, y - c), o = (y * S + x) * 4;
+    const a = Math.max(0, Math.min(1, 14.5 - d));        // contorno externo (borda branca)
+    const red = Math.max(0, Math.min(1, 11.5 - d));      // miolo vermelho
+    const mix = (white, col) => Math.round((white * (1 - red) + col * red) * a);
+    buf[o] = mix(255, 0x1c); buf[o + 1] = mix(255, 0x26); buf[o + 2] = mix(255, 0xe5); buf[o + 3] = Math.round(255 * a);
+  }
+  dotImage = nativeImage.createFromBitmap(buf, { width: S, height: S, scaleFactor: 2 });
+  return dotImage;
+}
+function applyBadge() {
+  if (!win || win.isDestroyed()) return;
+  try {
+    if (process.platform === 'win32') win.setOverlayIcon(offlineCount > 0 ? redDot() : null, offlineCount > 0 ? offlineCount + ' live(s) offline' : '');
+    else if (process.platform === 'darwin') app.dock.setBadge(offlineCount > 0 ? String(offlineCount) : '');
+    else app.setBadgeCount(offlineCount);
+  } catch (e) { console.error(e); }
+}
+ipcMain.handle('set-badge', (_e, n) => {
+  n = Math.max(0, Math.min(99, parseInt(n, 10) || 0));
+  if (n > offlineCount && win && !win.isDestroyed() && !win.isFocused()) win.flashFrame(true); // pisca na barra de tarefas até você voltar
+  offlineCount = n;
+  applyBadge();
+  return true;
+});
+
+// ---------- Manter o PC acordado ----------
+// 'prevent-app-suspension' impede o PC de suspender, mas deixa a tela apagar.
+let awakeId = null;
+function applyKeepAwake() {
+  const want = config.keepAwake !== false;
+  if (want && awakeId === null) awakeId = powerSaveBlocker.start('prevent-app-suspension');
+  if (!want && awakeId !== null) { powerSaveBlocker.stop(awakeId); awakeId = null; }
+}
 ipcMain.handle('login', (_e, platform) => { openLogin(platform === 'kick' ? 'kick' : 'twitch'); return true; });
 ipcMain.handle('logout', async () => {
   await session.fromPartition(PARTITION).clearStorageData();
@@ -239,9 +361,12 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     config = loadConfig();
+    config.slots.forEach(s => upsertSaved(s.platform, s.channel));
     // Bloqueia câmera, microfone, localização, notificações etc.
     session.fromPartition(PARTITION).setPermissionRequestHandler((_wc, perm, cb) =>
       cb(['fullscreen', 'clipboard-sanitized-write'].includes(perm)));
+    session.fromPartition(PROBE_PARTITION).setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
+    applyKeepAwake();
     createWindow();
   });
   app.on('window-all-closed', () => app.quit());

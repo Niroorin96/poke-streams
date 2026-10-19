@@ -1,6 +1,6 @@
 # Segurança e transparência
 
-O POKESTREAMS existe para ser **verificável**. Este documento diz o que o app faz, o que ele não faz, como conferir e como reportar um problema.
+O F2WSTREAMS existe para ser **verificável**. Este documento diz o que o app faz, o que ele não faz, como conferir e como reportar um problema.
 
 ## O que o app NÃO faz
 
@@ -17,13 +17,16 @@ O POKESTREAMS existe para ser **verificável**. Este documento diz o que o app f
 2. **Remove "Electron" do User-Agent.** A Twitch costuma recusar o login em navegadores que se identificam como Electron. O User-Agent passa a ser o do Chromium real. Isso não esconde nada de você; apenas permite o login.
 3. **Grava preferências no armazenamento dos players** (`webview-preload.js`): qualidade, volume, tema escuro do chat e `mature=true`, que **pula o aviso de conteúdo adulto** da Twitch. Se isso não for adequado para você, remova essa linha do arquivo.
 4. **Mantém a sessão logada** num perfil local do Electron (como um navegador). **Opções → Sair das contas** apaga tudo.
-5. **Grava um `config.json` local** com canais, disposição, qualidade, volume, largura do chat, recarga automática e posição da janela.
-6. **Na primeira execução**, o `iniciar` instala as dependências pelo `npm` e baixa o Electron oficial (registro do npm e releases do Electron no GitHub). É o único momento em que o app precisa de internet além das lives.
+5. **Grava um `config.json` local** com canais, lives guardadas (nome, plataforma, favorita, último status e quando foi vista ao vivo), disposição, qualidade, volume, largura do chat, recarga automática, opções gerais e posição da janela.
+6. **Checa o status das lives guardadas** (`index.html`, função `probeRound`): quando algum quadro cai, ou com a lista aberta, abre **uma live de cada vez** num `<webview>` oculto com o player oficial, numa sessão separada só em memória (`probe`, sem login, sem som, 160p), lê o status que o `webview-preload.js` já informa e fecha. O app **não consulta nenhuma API**. Cada checagem conta como uma visita de alguns segundos ao player. Dá para desligar em Opções.
+7. **Mostra um selo vermelho** no ícone da barra de tarefas e pisca a janela quando uma live ligada fica offline (`main.js`, `set-badge`). A bolinha é desenhada pelo próprio código.
+8. **Impede o PC de suspender** enquanto o app roda (`powerSaveBlocker`, modo `prevent-app-suspension`; a tela pode apagar). Dá para desligar em Opções.
+9. **Na primeira execução**, o `iniciar` instala as dependências pelo `npm` e baixa o Electron oficial (registro do npm e releases do Electron no GitHub). É o único momento em que o app precisa de internet além das lives.
 
 ## Como o app se protege
 
 - Os `<webview>` rodam **sem Node.js** e com **isolamento de contexto**.
-- A janela do app só enxerga **9 funções específicas** (`preload.js`), sem acesso genérico ao sistema.
+- A janela do app só enxerga **13 funções específicas** (`preload.js`), sem acesso genérico ao sistema.
 - Só endereços da **Twitch, Kick e suas CDNs** abrem dentro dos quadros; qualquer outra navegação é bloqueada e vai para o navegador padrão.
 - As entradas do usuário (nome de canal, opções) são **validadas** antes de virar URL ou configuração.
 - A única dependência direta é o **Electron** (`package.json`), com versões e hashes de integridade travados no `package-lock.json`.
@@ -39,17 +42,18 @@ O POKESTREAMS existe para ser **verificável**. Este documento diz o que o app f
 | **Resultado** | Nenhuma conexão de rede, execução remota ou envio de dados feitos pelo código do app. Comportamentos listados na seção "O que o app faz". |
   | **Dependências** | `npm audit` em 11/10/2026: 0 vulnerabilidades |
   | **Não coberto** | Revisão por IA é triagem e **não substitui** revisão humana. |
-| **Revisão da comunidade** | [pendente] |
+| **Mudanças depois de 11/10/2026** | Lives guardadas, checagem por quadro oculto, selo na barra de tarefas, manter o PC acordado e disposição Auto: **ainda sem nova auditoria**. Refazer a revisão e atualizar esta tabela antes de publicar. |
+| **Revisão da comunidade** | [pendente / nome de quem revisou] |
 
 ### Hashes SHA-256 dos arquivos auditados
 
 Compare com os seus. Se mudar qualquer arquivo, este quadro deve ser atualizado.
 
 ```
-b093388a6135f33dba10f4cefacbd6fe98d5bfef14607037bede4ff4a77756f4  main.js
-fbb0c74f4adaf0eaf5dccbf9f501a13e131eb2bbfd80f0966ad87d6968497511  preload.js
+fa48acbd33afd3fa8f03bb696cb1b58c176712001cf687878b0200133201b6b6  main.js
+32d3c68fd3540ddde2fe2007740c53fae01f301c5d3777911ee30504a3011331  preload.js
 b6971b3fe0e1fd7c467931a6a40aa4220de50b43d22d63858abde354254037cc  webview-preload.js
-f655274cc115200d45d639a938768b115316bc4b0c9409d3f216da36742ec1a8  index.html
+430ebe161a2f6454e0b83d5e0a87e4a53bf1faff30ba9f1dd95949fcab31f102  index.html
 3ded21a6ff521a8f22e4016c8ea14db8f71d485a4dbccab2c607d5067c6229e3  package.json
 3a93c89aa1ef451fedb445d30fdf388d05f3d1a09545c54ba26f309af3fc772b  package-lock.json
 2baa1b87ada906e2a74b57a10d53f118bf73a069c941b16da91148d6e0e88586  iniciar.bat
